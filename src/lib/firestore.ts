@@ -6,6 +6,7 @@ import {
   doc,
   getDocs,
   getDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -160,4 +161,55 @@ export async function updateBlogPost(
 
 export async function deleteBlogPost(id: string) {
   return deleteDoc(doc(requireDb(), "blog", id));
+}
+
+// ── Availability ───────────────────────────────────────────────────────────
+
+export interface Availability {
+  // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+  workingDays: number[];
+  startTime: string;     // "09:00"
+  endTime: string;       // "17:00"
+  slotDuration: number;  // minutes e.g. 60
+  maxPerSlot: number;    // how many bookings allowed per slot
+  blockedDates: string[];// ["2025-12-25"]
+}
+
+export const DEFAULT_AVAILABILITY: Availability = {
+  workingDays: [1, 2, 3, 4, 5, 6], // Mon–Sat
+  startTime: "09:00",
+  endTime: "17:00",
+  slotDuration: 60,
+  maxPerSlot: 1,
+  blockedDates: [],
+};
+
+export async function getAvailability(): Promise<Availability> {
+  const snap = await getDoc(doc(requireDb(), "settings", "availability"));
+  if (!snap.exists()) return DEFAULT_AVAILABILITY;
+  return snap.data() as Availability;
+}
+
+export async function saveAvailability(data: Availability): Promise<void> {
+  await setDoc(doc(requireDb(), "settings", "availability"), data);
+}
+
+/** Generate all time slots between startTime and endTime given a duration */
+export function generateTimeSlots(
+  startTime: string,
+  endTime: string,
+  durationMins: number
+): string[] {
+  const slots: string[] = [];
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+  let totalMins = startH * 60 + startM;
+  const endTotalMins = endH * 60 + endM;
+  while (totalMins + durationMins <= endTotalMins) {
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    totalMins += durationMins;
+  }
+  return slots;
 }

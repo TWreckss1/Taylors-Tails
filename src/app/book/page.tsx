@@ -1,18 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
-import { createBooking, getBookedSlots } from "@/lib/firestore";
+import {
+  createBooking,
+  getBookedSlots,
+  getAvailability,
+  generateTimeSlots,
+  DEFAULT_AVAILABILITY,
+  type Availability,
+} from "@/lib/firestore";
 
 const SERVICES = [
   "Full Groom",
   "Bath & Dry",
   "Puppy Package",
   "Tidy Up",
-];
-
-const ALL_SLOTS = [
-  "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00",
 ];
 
 function todayString() {
@@ -22,9 +24,27 @@ function todayString() {
 export default function BookPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedDate, setSelectedDate] = useState("");
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
+  const [allSlots, setAllSlots] = useState<string[]>([]);
+  const [bookedCounts, setBookedCounts] = useState<Record<string, number>>({});
   const [selectedTime, setSelectedTime] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Load availability settings once on mount
+  useEffect(() => {
+    getAvailability()
+      .then((a) => {
+        setAvailability(a);
+        setAllSlots(generateTimeSlots(a.startTime, a.endTime, a.slotDuration));
+      })
+      .catch(() => {
+        setAllSlots(generateTimeSlots(
+          DEFAULT_AVAILABILITY.startTime,
+          DEFAULT_AVAILABILITY.endTime,
+          DEFAULT_AVAILABILITY.slotDuration
+        ));
+      });
+  }, []);
   const [form, setForm] = useState({
     ownerName: "",
     ownerEmail: "",
@@ -37,14 +57,30 @@ export default function BookPage() {
 
   async function handleDateSelect(date: string) {
     setSelectedDate(date);
+    setSelectedTime("");
     setLoading(true);
     try {
-      const slots = await getBookedSlots(date);
-      setBookedSlots(slots);
+      const bookedSlots = await getBookedSlots(date);
+      // Count bookings per slot
+      const counts: Record<string, number> = {};
+      bookedSlots.forEach((slot) => {
+        counts[slot] = (counts[slot] ?? 0) + 1;
+      });
+      setBookedCounts(counts);
     } catch {
-      setBookedSlots([]);
+      setBookedCounts({});
     }
     setLoading(false);
+  }
+
+  function isDateAvailable(dateStr: string): boolean {
+    if (availability.blockedDates.includes(dateStr)) return false;
+    const day = new Date(dateStr + "T12:00:00").getDay();
+    return availability.workingDays.includes(day);
+  }
+
+  function isSlotFull(slot: string): boolean {
+    return (bookedCounts[slot] ?? 0) >= availability.maxPerSlot;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,7 +101,6 @@ export default function BookPage() {
     setLoading(false);
   }
 
-  const availableSlots = ALL_SLOTS.filter((s) => !bookedSlots.includes(s));
 
   return (
     <div className="min-h-[80vh] bg-[#F8F7F0] py-16 px-4">
@@ -136,31 +171,37 @@ export default function BookPage() {
               min={todayString()}
               value={selectedDate}
               onChange={(e) => handleDateSelect(e.target.value)}
-              className="w-full border border-[#EEE9D8] rounded-xl px-4 py-3 text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] mb-6"
+              className="w-full border border-[#EEE9D8] rounded-xl px-4 py-3 text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] mb-3"
             />
 
-            {selectedDate && (
+            {selectedDate && !isDateAvailable(selectedDate) && (
+              <p className="text-[#C0392B] text-sm mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                Sorry, we&apos;re not available on this date. Please choose another day.
+              </p>
+            )}
+
+            {selectedDate && isDateAvailable(selectedDate) && (
               <>
-                <label className="block text-sm font-bold text-[#2C2A25] mb-3">
+                <label className="block text-sm font-bold text-[#2C2A25] mb-3 mt-3">
                   Available Times
                 </label>
                 {loading ? (
                   <p className="text-[#7A7265] text-sm">Checking availability…</p>
-                ) : availableSlots.length === 0 ? (
+                ) : allSlots.every(isSlotFull) ? (
                   <p className="text-[#C0392B] text-sm">
                     No slots available on this date. Please choose another day.
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 mb-6">
-                    {ALL_SLOTS.map((slot) => {
-                      const booked = bookedSlots.includes(slot);
+                    {allSlots.map((slot) => {
+                      const full = isSlotFull(slot);
                       return (
                         <button
                           key={slot}
-                          disabled={booked}
+                          disabled={full}
                           onClick={() => setSelectedTime(slot)}
                           className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
-                            booked
+                            full
                               ? "bg-[#EEE9D8] text-[#B0A898] cursor-not-allowed line-through"
                               : selectedTime === slot
                               ? "bg-[#8B9E7A] text-white shadow"
@@ -177,7 +218,7 @@ export default function BookPage() {
             )}
 
             <button
-              disabled={!selectedDate || !selectedTime}
+              disabled={!selectedDate || !selectedTime || !isDateAvailable(selectedDate)}
               onClick={() => setStep(2)}
               className="w-full bg-[#8B9E7A] text-white py-3 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >

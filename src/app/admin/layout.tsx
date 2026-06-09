@@ -7,6 +7,7 @@ import { signOut } from "@/lib/auth";
 import {
   LayoutDashboard,
   CalendarCheck,
+  CalendarDays,
   Images,
   FileText,
   LogOut,
@@ -19,6 +20,7 @@ import type { User } from "firebase/auth";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/admin/availability", label: "Availability", icon: CalendarDays },
   { href: "/admin/gallery", label: "Gallery", icon: Images },
   { href: "/admin/blog", label: "Blog", icon: FileText },
 ];
