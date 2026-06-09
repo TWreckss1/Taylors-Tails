@@ -27,6 +27,7 @@ export default function BookPage() {
   const [slotsChecking, setSlotsChecking] = useState(false);
   const [selectedTime, setSelectedTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [form, setForm] = useState({
     ownerName: "", ownerEmail: "", ownerPhone: "",
     dogName: "", dogBreed: "", service: "", notes: "",
@@ -73,6 +74,7 @@ export default function BookPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
     try {
       await createBooking({
         ...form,
@@ -83,7 +85,7 @@ export default function BookPage() {
       setStep(3);
     } catch (err) {
       console.error(err);
-      alert("Something went wrong. Please try again.");
+      setSubmitError("Couldn't save your booking — please try again in a moment.");
     }
     setSubmitting(false);
   }
@@ -289,6 +291,12 @@ export default function BookPage() {
                 className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-none"
               />
             </div>
+
+            {submitError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-2">
+                {submitError}
+              </p>
+            )}
 
             <div className="flex gap-3">
               <button
