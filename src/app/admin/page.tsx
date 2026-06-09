@@ -1,40 +1,39 @@
-import { getBookings, getGalleryItems, getBlogPosts } from "@/lib/firestore";
+"use client";
+import { useEffect, useState } from "react";
+import { getBookings, getGalleryItems, getBlogPosts, type Booking } from "@/lib/firestore";
 import { CalendarCheck, Images, FileText, Clock } from "lucide-react";
 import Link from "next/link";
-
-export const dynamic = "force-dynamic";
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
-export default async function AdminDashboard() {
-  let bookings: Awaited<ReturnType<typeof getBookings>> = [];
-  let gallery: Awaited<ReturnType<typeof getGalleryItems>> = [];
-  let posts: Awaited<ReturnType<typeof getBlogPosts>> = [];
-  try {
-    const results = await Promise.all([
+export default function AdminDashboard() {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [galleryCount, setGalleryCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
       getBookings(),
       getGalleryItems(),
       getBlogPosts(false),
-    ]);
-    bookings = results[0];
-    gallery = results[1];
-    posts = results[2];
-  } catch { /* Firebase not configured yet */ }
+    ])
+      .then(([b, g, p]) => {
+        setBookings(b);
+        setGalleryCount(g.length);
+        setPostCount(p.length);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const today = new Date().toISOString().split("T")[0];
   const pending = bookings.filter((b) => b.status === "pending").length;
   const confirmed = bookings.filter((b) => b.status === "confirmed").length;
   const todayCount = bookings.filter((b) => b.date === today && b.status !== "cancelled").length;
-
-  const stats = [
-    { label: "Pending", value: pending, icon: Clock, color: "text-[#C4A55A]", bg: "bg-[#DFC78A]/20", href: "/admin/bookings" },
-    { label: "Confirmed", value: confirmed, icon: CalendarCheck, color: "text-[#4A7C59]", bg: "bg-[#B5C9A4]/20", href: "/admin/bookings" },
-    { label: "Gallery Photos", value: gallery.length, icon: Images, color: "text-[#8B9E7A]", bg: "bg-[#B5C9A4]/20", href: "/admin/gallery" },
-    { label: "Blog Posts", value: posts.length, icon: FileText, color: "text-[#8B5E3C]", bg: "bg-[#DFC78A]/20", href: "/admin/blog" },
-  ];
 
   const upcoming = bookings
     .filter((b) => b.status !== "cancelled" && b.date >= today)
@@ -43,6 +42,21 @@ export default async function AdminDashboard() {
 
   const todayBookings = upcoming.filter((b) => b.date === today);
   const futureBookings = upcoming.filter((b) => b.date > today);
+
+  const stats = [
+    { label: "Pending", value: pending, icon: Clock, color: "text-[#C4A55A]", bg: "bg-[#DFC78A]/20", href: "/admin/bookings" },
+    { label: "Confirmed", value: confirmed, icon: CalendarCheck, color: "text-[#4A7C59]", bg: "bg-[#B5C9A4]/20", href: "/admin/bookings" },
+    { label: "Gallery Photos", value: galleryCount, icon: Images, color: "text-[#8B9E7A]", bg: "bg-[#B5C9A4]/20", href: "/admin/gallery" },
+    { label: "Blog Posts", value: postCount, icon: FileText, color: "text-[#8B5E3C]", bg: "bg-[#DFC78A]/20", href: "/admin/blog" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="w-8 h-8 rounded-full border-4 border-[#8B9E7A] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>
