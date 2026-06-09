@@ -10,12 +10,7 @@ import {
   type Availability,
 } from "@/lib/firestore";
 
-const SERVICES = [
-  "Full Groom",
-  "Bath & Dry",
-  "Puppy Package",
-  "Tidy Up",
-];
+const SERVICES = ["Full Groom", "Bath & Dry", "Puppy Package", "Tidy Up"];
 
 function todayString() {
   return new Date().toISOString().split("T")[0];
@@ -25,53 +20,27 @@ export default function BookPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedDate, setSelectedDate] = useState("");
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
-  const [allSlots, setAllSlots] = useState<string[]>([]);
+  const [allSlots, setAllSlots] = useState<string[]>(
+    generateTimeSlots(DEFAULT_AVAILABILITY.startTime, DEFAULT_AVAILABILITY.endTime, DEFAULT_AVAILABILITY.slotDuration)
+  );
   const [bookedCounts, setBookedCounts] = useState<Record<string, number>>({});
+  const [slotsChecking, setSlotsChecking] = useState(false);
   const [selectedTime, setSelectedTime] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    ownerName: "", ownerEmail: "", ownerPhone: "",
+    dogName: "", dogBreed: "", service: "", notes: "",
+  });
 
-  // Load availability settings once on mount
+  // Load availability in the background — page is usable immediately with defaults
   useEffect(() => {
     getAvailability()
       .then((a) => {
         setAvailability(a);
         setAllSlots(generateTimeSlots(a.startTime, a.endTime, a.slotDuration));
       })
-      .catch(() => {
-        setAllSlots(generateTimeSlots(
-          DEFAULT_AVAILABILITY.startTime,
-          DEFAULT_AVAILABILITY.endTime,
-          DEFAULT_AVAILABILITY.slotDuration
-        ));
-      });
+      .catch(() => { /* keep defaults */ });
   }, []);
-  const [form, setForm] = useState({
-    ownerName: "",
-    ownerEmail: "",
-    ownerPhone: "",
-    dogName: "",
-    dogBreed: "",
-    service: "",
-    notes: "",
-  });
-
-  async function handleDateSelect(date: string) {
-    setSelectedDate(date);
-    setSelectedTime("");
-    setLoading(true);
-    try {
-      const bookedSlots = await getBookedSlots(date);
-      // Count bookings per slot
-      const counts: Record<string, number> = {};
-      bookedSlots.forEach((slot) => {
-        counts[slot] = (counts[slot] ?? 0) + 1;
-      });
-      setBookedCounts(counts);
-    } catch {
-      setBookedCounts({});
-    }
-    setLoading(false);
-  }
 
   function isDateAvailable(dateStr: string): boolean {
     if (availability.blockedDates.includes(dateStr)) return false;
@@ -83,9 +52,27 @@ export default function BookPage() {
     return (bookedCounts[slot] ?? 0) >= availability.maxPerSlot;
   }
 
+  function handleDateSelect(date: string) {
+    setSelectedDate(date);
+    setSelectedTime("");
+    setBookedCounts({}); // clear immediately — show all slots open
+    if (!date) return;
+
+    // Fetch booked slots in the background — slots are visible straight away
+    setSlotsChecking(true);
+    getBookedSlots(date)
+      .then((booked) => {
+        const counts: Record<string, number> = {};
+        booked.forEach((s) => { counts[s] = (counts[s] ?? 0) + 1; });
+        setBookedCounts(counts);
+      })
+      .catch(() => { /* treat as all available */ })
+      .finally(() => setSlotsChecking(false));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     try {
       await createBooking({
         ...form,
@@ -98,7 +85,7 @@ export default function BookPage() {
       console.error(err);
       alert("Something went wrong. Please try again.");
     }
-    setLoading(false);
+    setSubmitting(false);
   }
 
 
@@ -182,38 +169,38 @@ export default function BookPage() {
 
             {selectedDate && isDateAvailable(selectedDate) && (
               <>
-                <label className="block text-sm font-bold text-[#2C2A25] mb-3 mt-3">
-                  Available Times
-                </label>
-                {loading ? (
-                  <p className="text-[#7A7265] text-sm">Checking availability…</p>
-                ) : allSlots.every(isSlotFull) ? (
-                  <p className="text-[#C0392B] text-sm">
-                    No slots available on this date. Please choose another day.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 mb-6">
-                    {allSlots.map((slot) => {
-                      const full = isSlotFull(slot);
-                      return (
-                        <button
-                          key={slot}
-                          disabled={full}
-                          onClick={() => setSelectedTime(slot)}
-                          className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
-                            full
-                              ? "bg-[#EEE9D8] text-[#B0A898] cursor-not-allowed line-through"
-                              : selectedTime === slot
-                              ? "bg-[#8B9E7A] text-white shadow"
-                              : "bg-[#F8F7F0] border border-[#EEE9D8] text-[#2C2A25] hover:border-[#8B9E7A]"
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="flex items-center justify-between mb-3 mt-3">
+                  <label className="block text-sm font-bold text-[#2C2A25]">
+                    Available Times
+                  </label>
+                  {slotsChecking && (
+                    <span className="text-xs text-[#7A7265] flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 rounded-full border-2 border-[#8B9E7A] border-t-transparent animate-spin" />
+                      Updating…
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 mb-6">
+                  {allSlots.map((slot) => {
+                    const full = isSlotFull(slot);
+                    return (
+                      <button
+                        key={slot}
+                        disabled={full}
+                        onClick={() => setSelectedTime(slot)}
+                        className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          full
+                            ? "bg-[#EEE9D8] text-[#B0A898] cursor-not-allowed line-through"
+                            : selectedTime === slot
+                            ? "bg-[#8B9E7A] text-white shadow"
+                            : "bg-[#F8F7F0] border border-[#EEE9D8] text-[#2C2A25] hover:border-[#8B9E7A]"
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
+                </div>
               </>
             )}
 
@@ -313,11 +300,11 @@ export default function BookPage() {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={submitting}
                 className="flex-1 bg-[#8B9E7A] text-white py-3 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <CalendarCheck size={16} />
-                {loading ? "Booking…" : "Confirm Booking"}
+                {submitting ? "Booking…" : "Confirm Booking"}
               </button>
             </div>
           </form>
