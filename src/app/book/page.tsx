@@ -9,6 +9,7 @@ import {
   DEFAULT_AVAILABILITY,
   type Availability,
 } from "@/lib/firestore";
+import { db } from "@/lib/firebase";
 
 const SERVICES = ["Full Groom", "Bath & Dry", "Puppy Package", "Tidy Up"];
 
@@ -75,6 +76,11 @@ export default function BookPage() {
     e.preventDefault();
     setSubmitting(true);
     setSubmitError("");
+    if (!db) {
+      setSubmitError("Booking failed: Firebase is not configured on this deployment. Contact the site owner.");
+      setSubmitting(false);
+      return;
+    }
     try {
       await createBooking({
         ...form,
@@ -83,9 +89,10 @@ export default function BookPage() {
         status: "pending",
       });
       setStep(3);
-    } catch (err) {
-      console.error(err);
-      setSubmitError("Couldn't save your booking — please try again in a moment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Booking failed:", msg, err);
+      setSubmitError(`Booking failed: ${msg}`);
     }
     setSubmitting(false);
   }
