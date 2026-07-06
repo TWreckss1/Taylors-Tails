@@ -19,8 +19,8 @@ interface SiteConfig {
 export const SITE: SiteConfig = {
   name: "Taylor's Tails",
   legalName: "Taylor's Tails Dog Grooming Salon",
-  // Set NEXT_PUBLIC_SITE_URL in Cloudflare once the domain exists
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://taylors-tails.pages.dev",
+  // Set NEXT_PUBLIC_SITE_URL in Cloudflare once the real domain exists
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://taylors-tails.gdslade91.workers.dev",
   description:
     "Professional dog grooming salon offering full grooms, bath & dry, puppy packages and tidy-ups in a warm, caring environment. Book online today.",
 
