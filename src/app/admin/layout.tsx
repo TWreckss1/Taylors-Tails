@@ -13,6 +13,8 @@ import {
   LogOut,
   Menu,
   Star,
+  BarChart3,
+  ExternalLink,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -26,6 +28,11 @@ const navItems = [
   { href: "/admin/blog", label: "Blog", icon: FileText },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
 ];
+
+// Opens Google Analytics in a new tab rather than an embedded panel —
+// gives the full GA4 reporting suite for free instead of a custom-built
+// subset of it.
+const GOOGLE_ANALYTICS_URL = "https://analytics.google.com/analytics/web/";
 
 export default function AdminLayout({
   children,
@@ -94,6 +101,17 @@ export default function AdminLayout({
             {label}
           </Link>
         ))}
+
+        <a
+          href={GOOGLE_ANALYTICS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-[#7A7265] hover:text-[#EEE9D8] hover:bg-[#3C3A35] transition-colors"
+        >
+          <BarChart3 size={16} />
+          Analytics
+          <ExternalLink size={12} className="ml-auto opacity-60" />
+        </a>
       </nav>
 
       <button

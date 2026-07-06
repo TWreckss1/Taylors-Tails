@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
+import AnalyticsListener from "@/components/AnalyticsListener";
 import { SITE, localBusinessJsonLd } from "@/lib/site";
 
 const playfair = Playfair_Display({
@@ -76,6 +77,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
         <CookieConsent />
+        <AnalyticsListener />
       </body>
     </html>
   );
