@@ -1,8 +1,6 @@
 import { SITE } from "@/lib/site";
 import { getBlogPosts } from "@/lib/firestore";
 
-export const runtime = "edge";
-
 export async function GET() {
   const urls: { loc: string; priority: number }[] = [
     { loc: SITE.url, priority: 1.0 },

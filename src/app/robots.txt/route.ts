@@ -1,7 +1,5 @@
 import { SITE } from "@/lib/site";
 
-export const runtime = "edge";
-
 // All crawlers welcome — including AI assistants (ClaudeBot, GPTBot,
 // PerplexityBot, Google-Extended etc.) so the business is discoverable
 // when people ask chatbots for local dog groomers.
