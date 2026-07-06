@@ -15,6 +15,12 @@ export default function Footer() {
             <p className="text-sm text-[#7A7265] leading-relaxed">
               Professional dog grooming with love, care, and attention to every tail.
             </p>
+            <Link
+              href="/admin"
+              className="inline-block mt-3 text-xs font-bold text-[#5A5650] hover:text-[#B5C9A4] transition-colors uppercase tracking-wide"
+            >
+              Admin
+            </Link>
           </div>
 
           {/* Links */}

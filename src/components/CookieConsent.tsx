@@ -61,9 +61,9 @@ export default function CookieConsent() {
                 We use cookies
               </h2>
               <p className="text-sm text-[#7A7265] mt-1 leading-relaxed">
-                We use essential storage to keep the site working (like admin
-                login) and, only with your permission, analytics to help us
-                understand how the site is used.{" "}
+                We use essential storage to keep the site working and, only
+                with your permission, analytics to help us understand how the
+                site is used.{" "}
                 <Link
                   href="/cookie-policy"
                   className="text-[#8B9E7A] font-bold hover:text-[#5E6E51] underline underline-offset-2"
