@@ -22,9 +22,10 @@ export default function ReviewPage() {
     try {
       await createReview({ ...form, rating });
       setDone(true);
-    } catch (err) {
-      console.error(err);
-      setError("Couldn't submit your review — please try again in a moment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Review submit failed:", msg, err);
+      setError(`Couldn't submit your review: ${msg}`);
     }
     setSubmitting(false);
   }
