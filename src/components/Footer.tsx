@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
+import { CookiePrefsButton } from "@/components/CookieConsent";
 
 export default function Footer() {
   return (
@@ -84,8 +85,14 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-[#3C3A35] text-xs text-[#5A5650] text-center">
-          © {new Date().getFullYear()} Taylor&apos;s Tails Dog Grooming. All rights reserved.
+        <div className="mt-10 pt-6 border-t border-[#3C3A35] text-xs text-[#5A5650] flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
+          <span>© {new Date().getFullYear()} Taylor&apos;s Tails Dog Grooming. All rights reserved.</span>
+          <span className="hidden sm:inline">·</span>
+          <Link href="/cookie-policy" className="hover:text-[#B5C9A4] transition-colors">
+            Cookie Policy
+          </Link>
+          <span className="hidden sm:inline">·</span>
+          <CookiePrefsButton />
         </div>
       </div>
     </footer>
