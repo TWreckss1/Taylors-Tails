@@ -14,6 +14,7 @@ import {
   Menu,
   Star,
   BarChart3,
+  Banknote,
   ExternalLink,
   X,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/gallery", label: "Gallery", icon: Images },
   { href: "/admin/blog", label: "Blog", icon: FileText },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/deposits", label: "Deposits", icon: Banknote },
 ];
 
 // Opens Google Analytics in a new tab rather than an embedded panel —

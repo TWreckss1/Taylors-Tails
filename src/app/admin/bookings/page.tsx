@@ -4,21 +4,25 @@ import {
   getBookings,
   updateBookingStatus,
   deleteBooking,
+  getDepositSettings,
   type Booking,
+  type DepositSettings,
 } from "@/lib/firestore";
-import { CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Trash2, Banknote } from "lucide-react";
 import { sendBookingNotification } from "@/lib/email";
 
 export default function AdminBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [depositSettings, setDepositSettings] = useState<DepositSettings>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
 
   async function load() {
     setLoading(true);
     try {
-      const data = await getBookings();
+      const [data, deposits] = await Promise.all([getBookings(), getDepositSettings()]);
       setBookings(data);
+      setDepositSettings(deposits);
     } catch { /* not configured */ }
     setLoading(false);
   }
@@ -26,10 +30,16 @@ export default function AdminBookings() {
   useEffect(() => { load(); }, []);
 
   async function handleStatus(id: string, status: Booking["status"]) {
-    await updateBookingStatus(id, status);
     const booking = bookings.find((b) => b.id === id);
-    if (booking && (status === "confirmed" || status === "cancelled")) {
-      sendBookingNotification(status, booking);
+    if (!booking) return;
+
+    const depositAmount =
+      status === "confirmed" ? depositSettings[booking.service] : undefined;
+
+    await updateBookingStatus(id, status, depositAmount);
+
+    if (status === "confirmed" || status === "cancelled") {
+      sendBookingNotification(status, { ...booking, status, depositAmount });
     }
     await load();
   }
@@ -83,7 +93,7 @@ export default function AdminBookings() {
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <h3 className="font-bold text-[#2C2A25]">
                       {b.dogName}{" "}
                       <span className="text-[#7A7265] font-normal">
@@ -101,6 +111,20 @@ export default function AdminBookings() {
                     >
                       {b.status}
                     </span>
+                    {b.status === "confirmed" && b.depositAmount ? (
+                      <span
+                        className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-bold ${
+                          b.depositPaid
+                            ? "bg-[#B5C9A4]/30 text-[#4A7C59]"
+                            : "bg-[#DFC78A]/30 text-[#8B6F2E]"
+                        }`}
+                      >
+                        <Banknote size={11} />
+                        {b.depositPaid
+                          ? `Deposit Paid £${b.depositAmount.toFixed(2)}`
+                          : `Awaiting Deposit £${b.depositAmount.toFixed(2)}`}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-sm text-[#7A7265]">
                     {b.ownerName} · {b.ownerEmail} · {b.ownerPhone}

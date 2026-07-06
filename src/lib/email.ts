@@ -10,12 +10,14 @@ export function sendBookingNotification(type: NotifyType, booking: Booking): voi
   const payload = {
     type,
     booking: {
+      id: booking.id,
       ownerName: booking.ownerName,
       ownerEmail: booking.ownerEmail,
       dogName: booking.dogName,
       service: booking.service,
       date: booking.date,
       time: booking.time,
+      depositAmount: booking.depositAmount,
     },
   };
   fetch("/api/notify", {

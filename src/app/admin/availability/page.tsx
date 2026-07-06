@@ -179,6 +179,27 @@ export default function AvailabilityPage() {
                 className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">
+                Buffer Around Bookings
+              </label>
+              <select
+                value={form.bufferHours}
+                onChange={(e) => setForm((f) => ({ ...f, bufferHours: Number(e.target.value) }))}
+                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]"
+              >
+                <option value={0}>No buffer</option>
+                <option value={1}>1 hour</option>
+                <option value={2}>2 hours</option>
+                <option value={3}>3 hours</option>
+                <option value={4}>4 hours</option>
+              </select>
+              <p className="text-xs text-[#7A7265] mt-1.5">
+                Blocks nearby slots either side of a booking, e.g. a 3-hour
+                buffer on an 11:00 booking hides 9:00–13:00, leaving 14:00 as
+                the next open slot.
+              </p>
+            </div>
           </div>
 
           {/* Slot preview */}

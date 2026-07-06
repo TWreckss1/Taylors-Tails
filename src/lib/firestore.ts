@@ -34,6 +34,11 @@ export interface Booking {
   time: string;        // e.g. "10:00"
   notes?: string;
   status: "pending" | "confirmed" | "cancelled";
+  // Deposit is only requested once a booking is confirmed — never taken
+  // up-front — so there's nothing to refund if the owner can't take the slot.
+  depositAmount?: number;   // pounds, snapshotted at confirm time
+  depositPaid?: boolean;
+  depositPaidAt?: Timestamp;
   createdAt?: Timestamp;
 }
 
@@ -61,12 +66,23 @@ export interface BlogPost {
 
 // ── Bookings ───────────────────────────────────────────────────────────────
 
+// "bookingSlots" mirrors just {date, time, status} for each booking, with no
+// customer details — it's the only booking-related collection that's safe to
+// let the public /book page read (via a Firestore `list` query), since the
+// real "bookings" collection holds names/emails/phone numbers and is kept
+// admin-only for list/read.
+function slotMirror(id: string, data: Pick<Booking, "date" | "time" | "status">) {
+  return setDoc(doc(requireDb(), "bookingSlots", id), data);
+}
+
 export async function createBooking(data: Omit<Booking, "id" | "createdAt">) {
-  return addDoc(collection(requireDb(), "bookings"), {
+  const ref = await addDoc(collection(requireDb(), "bookings"), {
     ...data,
     status: "pending",
     createdAt: serverTimestamp(),
   });
+  await slotMirror(ref.id, { date: data.date, time: data.time, status: "pending" });
+  return ref;
 }
 
 export async function getBookings(): Promise<Booking[]> {
@@ -76,25 +92,48 @@ export async function getBookings(): Promise<Booking[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
 }
 
+/** Every currently-occupied time on a date (not cancelled) — safe for public use. */
 export async function getBookedSlots(date: string): Promise<string[]> {
   const snap = await getDocs(
     query(
-      collection(requireDb(), "bookings"),
+      collection(requireDb(), "bookingSlots"),
       where("date", "==", date),
       where("status", "!=", "cancelled")
     )
   );
-  return snap.docs.map((d) => (d.data() as Booking).time);
+  return snap.docs.map((d) => (d.data() as { time: string }).time);
 }
 
 export async function updateBookingStatus(
   id: string,
-  status: Booking["status"]
+  status: Booking["status"],
+  depositAmount?: number
 ) {
-  return updateDoc(doc(requireDb(), "bookings", id), { status });
+  // Snapshot the deposit amount at the moment of confirming, so later
+  // price changes in Deposit Settings don't affect bookings already confirmed.
+  const updates: Partial<Booking> =
+    status === "confirmed" && depositAmount !== undefined
+      ? { status, depositAmount, depositPaid: false }
+      : { status };
+  await updateDoc(doc(requireDb(), "bookings", id), updates);
+  await updateDoc(doc(requireDb(), "bookingSlots", id), { status });
+}
+
+export async function getBooking(id: string): Promise<Booking | null> {
+  const snap = await getDoc(doc(requireDb(), "bookings", id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Booking;
+}
+
+export async function markDepositPaid(id: string): Promise<void> {
+  await updateDoc(doc(requireDb(), "bookings", id), {
+    depositPaid: true,
+    depositPaidAt: serverTimestamp(),
+  });
 }
 
 export async function deleteBooking(id: string) {
+  await deleteDoc(doc(requireDb(), "bookingSlots", id));
   return deleteDoc(doc(requireDb(), "bookings", id));
 }
 
@@ -220,6 +259,7 @@ export interface Availability {
   endTime: string;       // "17:00"
   slotDuration: number;  // minutes e.g. 60
   maxPerSlot: number;    // how many bookings allowed per slot
+  bufferHours: number;   // hours blocked either side of a booked slot
   blockedDates: string[];// ["2025-12-25"]
 }
 
@@ -229,17 +269,34 @@ export const DEFAULT_AVAILABILITY: Availability = {
   endTime: "17:00",
   slotDuration: 60,
   maxPerSlot: 1,
+  bufferHours: 3,
   blockedDates: [],
 };
 
 export async function getAvailability(): Promise<Availability> {
   const snap = await getDoc(doc(requireDb(), "settings", "availability"));
   if (!snap.exists()) return DEFAULT_AVAILABILITY;
-  return snap.data() as Availability;
+  // Merge with defaults so older saved settings (before bufferHours existed) still work.
+  return { ...DEFAULT_AVAILABILITY, ...(snap.data() as Partial<Availability>) };
 }
 
 export async function saveAvailability(data: Availability): Promise<void> {
   await setDoc(doc(requireDb(), "settings", "availability"), data);
+}
+
+// ── Deposit Settings ─────────────────────────────────────────────────────────
+
+/** Deposit amount in whole pounds, keyed by service name. */
+export type DepositSettings = Record<string, number>;
+
+export async function getDepositSettings(): Promise<DepositSettings> {
+  const snap = await getDoc(doc(requireDb(), "settings", "deposits"));
+  if (!snap.exists()) return {};
+  return snap.data() as DepositSettings;
+}
+
+export async function saveDepositSettings(data: DepositSettings): Promise<void> {
+  await setDoc(doc(requireDb(), "settings", "deposits"), data);
 }
 
 /** Generate all time slots between startTime and endTime given a duration */

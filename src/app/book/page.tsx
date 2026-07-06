@@ -25,7 +25,7 @@ export default function BookPage() {
   const [allSlots, setAllSlots] = useState<string[]>(
     generateTimeSlots(DEFAULT_AVAILABILITY.startTime, DEFAULT_AVAILABILITY.endTime, DEFAULT_AVAILABILITY.slotDuration)
   );
-  const [bookedCounts, setBookedCounts] = useState<Record<string, number>>({});
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [slotsChecking, setSlotsChecking] = useState(false);
   const [selectedTime, setSelectedTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,24 +51,33 @@ export default function BookPage() {
     return availability.workingDays.includes(day);
   }
 
-  function isSlotFull(slot: string): boolean {
-    return (bookedCounts[slot] ?? 0) >= availability.maxPerSlot;
+  function toMinutes(t: string): number {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  /** Blocked if the exact slot is at capacity, or falls within the buffer
+   * window either side of an existing (non-cancelled) booking. */
+  function isSlotBlocked(slot: string): boolean {
+    const countAtSlot = bookedTimes.filter((t) => t === slot).length;
+    if (countAtSlot >= availability.maxPerSlot) return true;
+
+    const bufferMins = availability.bufferHours * 60;
+    if (bufferMins <= 0) return false;
+    const slotMins = toMinutes(slot);
+    return bookedTimes.some((t) => Math.abs(toMinutes(t) - slotMins) < bufferMins);
   }
 
   function handleDateSelect(date: string) {
     setSelectedDate(date);
     setSelectedTime("");
-    setBookedCounts({}); // clear immediately — show all slots open
+    setBookedTimes([]); // clear immediately — show all slots open
     if (!date) return;
 
     // Fetch booked slots in the background — slots are visible straight away
     setSlotsChecking(true);
     getBookedSlots(date)
-      .then((booked) => {
-        const counts: Record<string, number> = {};
-        booked.forEach((s) => { counts[s] = (counts[s] ?? 0) + 1; });
-        setBookedCounts(counts);
-      })
+      .then(setBookedTimes)
       .catch(() => { /* treat as all available */ })
       .finally(() => setSlotsChecking(false));
   }
@@ -198,7 +207,7 @@ export default function BookPage() {
                 </div>
                 <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 mb-6">
                   {allSlots.map((slot) => {
-                    const full = isSlotFull(slot);
+                    const full = isSlotBlocked(slot);
                     return (
                       <button
                         key={slot}
