@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { getGalleryItems } from "@/lib/firestore";
+
+export const metadata: Metadata = {
+  title: "Before & After Gallery",
+  description:
+    "See the transformations — before and after photos of dogs groomed at Taylor's Tails. Real results from our grooming salon.",
+};
 
 export const revalidate = 60;
 

@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getBlogPosts } from "@/lib/firestore";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
+
+export const metadata: Metadata = {
+  title: "Blog — Grooming Tips & News",
+  description:
+    "Dog grooming tips, coat care advice and news from Taylor's Tails grooming salon.",
+};
 
 export const revalidate = 60;
 
