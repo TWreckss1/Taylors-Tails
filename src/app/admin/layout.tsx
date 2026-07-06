@@ -12,6 +12,7 @@ import {
   FileText,
   LogOut,
   Menu,
+  Star,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/admin/availability", label: "Availability", icon: CalendarDays },
   { href: "/admin/gallery", label: "Gallery", icon: Images },
   { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
 ];
 
 export default function AdminLayout({

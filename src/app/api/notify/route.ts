@@ -147,6 +147,10 @@ export async function POST(request: NextRequest) {
         ${detailsTable(booking)}
         <p style="color:#7A7265;font-size:13px;line-height:1.6;">
           Need to reschedule? Just reply to this email as soon as you can.
+        </p>
+        <p style="color:#7A7265;font-size:13px;line-height:1.6;">
+          After your visit, we'd love to hear how it went —
+          <a href="${new URL(request.url).origin}/review" style="color:#8B9E7A;font-weight:bold;">leave us a review</a>.
         </p>`
       );
       await sendEmail(

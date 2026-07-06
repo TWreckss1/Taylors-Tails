@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Scissors, Star, Heart, Shield, CalendarCheck } from "lucide-react";
+import ReviewsCarousel from "@/components/ReviewsCarousel";
 
 const services = [
   {
@@ -24,29 +25,6 @@ const services = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Sarah M.",
-    dog: "Bella the Cockapoo",
-    quote:
-      "Taylor's Tails is absolutely wonderful. Bella always comes back looking and smelling amazing — and she's not even anxious anymore!",
-    stars: 5,
-  },
-  {
-    name: "James R.",
-    dog: "Bruno the Labrador",
-    quote:
-      "Best groomer we've ever used. Professional, caring, and Bruno actually enjoys going now. Highly recommend!",
-    stars: 5,
-  },
-  {
-    name: "Emma L.",
-    dog: "Daisy the Cavapoo",
-    quote:
-      "So glad we found Taylor's Tails. The booking system is so easy and Daisy always looks incredible.",
-    stars: 5,
-  },
-];
 
 export default function Home() {
   return (
@@ -158,31 +136,7 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map(({ name, dog, quote, stars }) => (
-              <div
-                key={name}
-                className="bg-white border border-[#EEE9D8] rounded-2xl p-6 shadow-sm"
-              >
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: stars }).map((_, i) => (
-                    <Star
-                      key={i}
-                      size={16}
-                      className="text-[#C4A55A] fill-[#C4A55A]"
-                    />
-                  ))}
-                </div>
-                <p className="text-[#2C2A25] text-sm leading-relaxed mb-4">
-                  &ldquo;{quote}&rdquo;
-                </p>
-                <div>
-                  <p className="font-bold text-sm text-[#2C2A25]">{name}</p>
-                  <p className="text-xs text-[#7A7265]">{dog}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ReviewsCarousel />
         </div>
       </section>
 

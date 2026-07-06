@@ -163,6 +163,54 @@ export async function deleteBlogPost(id: string) {
   return deleteDoc(doc(requireDb(), "blog", id));
 }
 
+// ── Reviews ────────────────────────────────────────────────────────────────
+
+export interface Review {
+  id?: string;
+  name: string;
+  dogName: string;
+  rating: number; // 1–5
+  quote: string;
+  status: "pending" | "approved";
+  createdAt?: Timestamp;
+}
+
+export async function createReview(
+  data: Omit<Review, "id" | "status" | "createdAt">
+) {
+  return addDoc(collection(requireDb(), "reviews"), {
+    ...data,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function getApprovedReviews(): Promise<Review[]> {
+  const snap = await getDocs(
+    query(
+      collection(requireDb(), "reviews"),
+      where("status", "==", "approved"),
+      orderBy("createdAt", "desc")
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+}
+
+export async function getAllReviews(): Promise<Review[]> {
+  const snap = await getDocs(
+    query(collection(requireDb(), "reviews"), orderBy("createdAt", "desc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+}
+
+export async function updateReviewStatus(id: string, status: Review["status"]) {
+  return updateDoc(doc(requireDb(), "reviews", id), { status });
+}
+
+export async function deleteReview(id: string) {
+  return deleteDoc(doc(requireDb(), "reviews", id));
+}
+
 // ── Availability ───────────────────────────────────────────────────────────
 
 export interface Availability {
