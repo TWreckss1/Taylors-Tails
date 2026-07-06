@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { onAuthChange } from "@/lib/auth";
 import Link from "next/link";
@@ -43,20 +43,33 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [forcingLogout, setForcingLogout] = useState(true);
+  const forcedRef = useRef(false);
+
+  // Force a fresh login every time the admin section is entered — even if
+  // Firebase still has a persisted session from a previous visit — so
+  // leaving the admin area (or someone else clicking the Admin link) never
+  // skips straight to the dashboard.
+  useEffect(() => {
+    if (forcedRef.current) return;
+    forcedRef.current = true;
+    signOut().finally(() => setForcingLogout(false));
+  }, []);
 
   useEffect(() => {
+    if (forcingLogout) return;
     return onAuthChange((u) => {
       setUser(u);
       if (!u && pathname !== "/admin/login") {
         router.replace("/admin/login");
       }
     });
-  }, [router, pathname]);
+  }, [forcingLogout, router, pathname]);
 
   // Close sidebar on route change
   useEffect(() => setSidebarOpen(false), [pathname]);
 
-  if (user === undefined) {
+  if (forcingLogout || user === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F7F0]">
         <div className="w-8 h-8 rounded-full border-4 border-[#8B9E7A] border-t-transparent animate-spin" />
