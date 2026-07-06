@@ -7,6 +7,7 @@ import {
   type Booking,
 } from "@/lib/firestore";
 import { CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { sendBookingNotification } from "@/lib/email";
 
 export default function AdminBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -26,6 +27,10 @@ export default function AdminBookings() {
 
   async function handleStatus(id: string, status: Booking["status"]) {
     await updateBookingStatus(id, status);
+    const booking = bookings.find((b) => b.id === id);
+    if (booking && (status === "confirmed" || status === "cancelled")) {
+      sendBookingNotification(status, booking);
+    }
     await load();
   }
 

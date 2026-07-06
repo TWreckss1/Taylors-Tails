@@ -10,6 +10,7 @@ import {
   type Availability,
 } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
+import { sendBookingNotification } from "@/lib/email";
 
 const SERVICES = ["Full Groom", "Bath & Dry", "Puppy Package", "Tidy Up"];
 
@@ -83,6 +84,12 @@ export default function BookPage() {
     }
     try {
       await createBooking({
+        ...form,
+        date: selectedDate,
+        time: selectedTime,
+        status: "pending",
+      });
+      sendBookingNotification("new", {
         ...form,
         date: selectedDate,
         time: selectedTime,

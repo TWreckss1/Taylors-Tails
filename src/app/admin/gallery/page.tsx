@@ -7,6 +7,7 @@ import {
   type GalleryItem,
 } from "@/lib/firestore";
 import { Trash2, Upload } from "lucide-react";
+import { uploadFile } from "@/lib/storage";
 
 export default function AdminGallery() {
   const [items, setItems] = useState<GalleryItem[]>([]);
@@ -25,20 +26,6 @@ export default function AdminGallery() {
 
   useEffect(() => { load(); }, []);
 
-  async function uploadToBlob(file: File, folder: string): Promise<string> {
-    const data = new FormData();
-    data.append("file", file);
-    data.append("folder", folder);
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      headers: { "x-upload-secret": process.env.NEXT_PUBLIC_UPLOAD_SECRET ?? "" },
-      body: data,
-    });
-    if (!res.ok) throw new Error("Upload failed");
-    const json = await res.json();
-    return json.url as string;
-  }
-
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
     const beforeFile = beforeRef.current?.files?.[0];
@@ -48,8 +35,8 @@ export default function AdminGallery() {
     setUploading(true);
     try {
       const [beforeUrl, afterUrl] = await Promise.all([
-        uploadToBlob(beforeFile, "gallery"),
-        uploadToBlob(afterFile, "gallery"),
+        uploadFile(beforeFile, "gallery"),
+        uploadFile(afterFile, "gallery"),
       ]);
       await createGalleryItem({ beforeUrl, afterUrl, ...form });
       setForm({ dogName: "", breed: "", caption: "" });
@@ -58,7 +45,7 @@ export default function AdminGallery() {
       await load();
     } catch (err) {
       console.error(err);
-      alert("Upload failed. Check BLOB_READ_WRITE_TOKEN and UPLOAD_SECRET env vars.");
+      alert("Upload failed. Check Firebase Storage is enabled in your Firebase project.");
     }
     setUploading(false);
   }
