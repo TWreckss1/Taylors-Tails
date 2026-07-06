@@ -225,14 +225,15 @@ export async function createReview(
 }
 
 export async function getApprovedReviews(): Promise<Review[]> {
+  // Filter by status only (no orderBy) to avoid needing a Firestore composite
+  // index; sort client-side instead since review counts are small.
   const snap = await getDocs(
-    query(
-      collection(requireDb(), "reviews"),
-      where("status", "==", "approved"),
-      orderBy("createdAt", "desc")
-    )
+    query(collection(requireDb(), "reviews"), where("status", "==", "approved"))
   );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+  const reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+  return reviews.sort(
+    (a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)
+  );
 }
 
 export async function getAllReviews(): Promise<Review[]> {

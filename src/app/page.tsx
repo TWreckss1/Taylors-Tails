@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scissors, Star, Heart, Shield, CalendarCheck } from "lucide-react";
+import { Scissors, Heart, Shield, CalendarCheck } from "lucide-react";
 import ReviewsCarousel from "@/components/ReviewsCarousel";
 
 const services = [
@@ -73,7 +73,6 @@ export default function Home() {
             {[
               { icon: <Shield size={16} />, text: "Fully Insured" },
               { icon: <Heart size={16} />, text: "Dog-First Approach" },
-              { icon: <Star size={16} />, text: "5★ Rated" },
               { icon: <Scissors size={16} />, text: "All Breeds Welcome" },
             ].map(({ icon, text }) => (
               <span key={text} className="flex items-center gap-1.5">
