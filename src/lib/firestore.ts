@@ -107,6 +107,8 @@ export async function getBookedSlots(date: string): Promise<string[]> {
 export async function updateBookingStatus(
   id: string,
   status: Booking["status"],
+  date: string,
+  time: string,
   depositAmount?: number
 ) {
   // Snapshot the deposit amount at the moment of confirming, so later
@@ -116,7 +118,20 @@ export async function updateBookingStatus(
       ? { status, depositAmount, depositPaid: false }
       : { status };
   await updateDoc(doc(requireDb(), "bookings", id), updates);
-  await updateDoc(doc(requireDb(), "bookingSlots", id), { status });
+  // setDoc + merge (not updateDoc) so this also backfills a missing mirror
+  // doc for bookings created before the "bookingSlots" collection existed.
+  await slotMirror(id, { date, time, status });
+}
+
+/** One-off repair for bookings created before the "bookingSlots" mirror
+ * collection existed — backfills every booking's mirror doc so older
+ * confirmed appointments correctly block nearby slots on the public page. */
+export async function syncAllBookingSlots(): Promise<number> {
+  const bookings = await getBookings();
+  await Promise.all(
+    bookings.map((b) => slotMirror(b.id!, { date: b.date, time: b.time, status: b.status }))
+  );
+  return bookings.length;
 }
 
 export async function getBooking(id: string): Promise<Booking | null> {

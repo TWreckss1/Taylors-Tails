@@ -5,17 +5,27 @@ import {
   updateBookingStatus,
   deleteBooking,
   getDepositSettings,
+  syncAllBookingSlots,
   type Booking,
   type DepositSettings,
 } from "@/lib/firestore";
-import { CheckCircle2, XCircle, Trash2, Banknote } from "lucide-react";
+import { CheckCircle2, XCircle, Trash2, Banknote, RefreshCw } from "lucide-react";
 import { sendBookingNotification } from "@/lib/email";
+
+/** A confirmed appointment whose date & time have already passed. */
+function isArchived(b: Booking): boolean {
+  if (b.status !== "confirmed") return false;
+  return new Date(`${b.date}T${b.time}`).getTime() < Date.now();
+}
+
+type Filter = "all" | "pending" | "confirmed" | "cancelled" | "archive";
 
 export default function AdminBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [depositSettings, setDepositSettings] = useState<DepositSettings>({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [syncing, setSyncing] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -36,7 +46,7 @@ export default function AdminBookings() {
     const depositAmount =
       status === "confirmed" ? depositSettings[booking.service] : undefined;
 
-    await updateBookingStatus(id, status, depositAmount);
+    await updateBookingStatus(id, status, booking.date, booking.time, depositAmount);
 
     if (status === "confirmed" || status === "cancelled") {
       sendBookingNotification(status, { ...booking, status, depositAmount });
@@ -50,18 +60,51 @@ export default function AdminBookings() {
     await load();
   }
 
-  const filtered =
-    filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const count = await syncAllBookingSlots();
+      alert(`Synced availability data for ${count} booking${count === 1 ? "" : "s"}.`);
+    } catch {
+      alert("Sync failed — check Firebase is configured.");
+    }
+    setSyncing(false);
+  }
+
+  function countFor(f: Filter): number {
+    if (f === "all") return bookings.length;
+    if (f === "archive") return bookings.filter(isArchived).length;
+    if (f === "confirmed") return bookings.filter((b) => b.status === "confirmed" && !isArchived(b)).length;
+    return bookings.filter((b) => b.status === f).length;
+  }
+
+  const filtered = bookings.filter((b) => {
+    if (filter === "all") return true;
+    if (filter === "archive") return isArchived(b);
+    if (filter === "confirmed") return b.status === "confirmed" && !isArchived(b);
+    return b.status === filter;
+  });
 
   return (
     <div>
-      <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#2C2A25] mb-6">
-        Bookings
-      </h1>
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#2C2A25]">
+          Bookings
+        </h1>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          title="Fixes older bookings that don't correctly block nearby slots on the booking page"
+          className="flex items-center gap-1.5 text-xs font-bold text-[#7A7265] border border-[#EEE9D8] px-3 py-1.5 rounded-full hover:border-[#8B9E7A] hover:text-[#8B9E7A] transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+          {syncing ? "Syncing…" : "Repair Availability Data"}
+        </button>
+      </div>
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {(["all", "pending", "confirmed", "cancelled"] as const).map((f) => (
+        {(["all", "pending", "confirmed", "cancelled", "archive"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -71,7 +114,7 @@ export default function AdminBookings() {
                 : "bg-white border border-[#EEE9D8] text-[#7A7265] hover:border-[#8B9E7A]"
             }`}
           >
-            {f} {f === "all" ? `(${bookings.length})` : `(${bookings.filter((b) => b.status === f).length})`}
+            {f} ({countFor(f)})
           </button>
         ))}
       </div>
@@ -86,10 +129,12 @@ export default function AdminBookings() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((b) => (
+          {filtered.map((b) => {
+            const archived = isArchived(b);
+            return (
             <div
               key={b.id}
-              className="bg-white rounded-2xl border border-[#EEE9D8] p-5 shadow-sm"
+              className={`bg-white rounded-2xl border border-[#EEE9D8] p-5 shadow-sm ${archived ? "opacity-75" : ""}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -102,14 +147,16 @@ export default function AdminBookings() {
                     </h3>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        b.status === "confirmed"
+                        archived
+                          ? "bg-[#EEE9D8] text-[#7A7265]"
+                          : b.status === "confirmed"
                           ? "bg-[#B5C9A4]/30 text-[#4A7C59]"
                           : b.status === "cancelled"
                           ? "bg-red-100 text-red-600"
                           : "bg-[#DFC78A]/30 text-[#8B6F2E]"
                       }`}
                     >
-                      {b.status}
+                      {archived ? "completed" : b.status}
                     </span>
                     {b.status === "confirmed" && b.depositAmount ? (
                       <span
@@ -143,7 +190,7 @@ export default function AdminBookings() {
                 </div>
 
                 <div className="flex gap-2 shrink-0">
-                  {b.status !== "confirmed" && (
+                  {!archived && b.status !== "confirmed" && (
                     <button
                       onClick={() => handleStatus(b.id!, "confirmed")}
                       className="flex items-center gap-1.5 text-xs font-bold text-[#4A7C59] border border-[#B5C9A4] px-3 py-1.5 rounded-full hover:bg-[#B5C9A4]/20 transition-colors"
@@ -152,7 +199,7 @@ export default function AdminBookings() {
                       Confirm
                     </button>
                   )}
-                  {b.status !== "cancelled" && (
+                  {!archived && b.status !== "cancelled" && (
                     <button
                       onClick={() => handleStatus(b.id!, "cancelled")}
                       className="flex items-center gap-1.5 text-xs font-bold text-[#C0392B] border border-red-200 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors"
@@ -170,7 +217,8 @@ export default function AdminBookings() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
