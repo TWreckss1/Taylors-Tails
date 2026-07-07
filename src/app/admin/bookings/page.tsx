@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   getBookings,
+  createBooking,
   updateBookingStatus,
   deleteBooking,
   getDepositSettings,
@@ -9,8 +10,21 @@ import {
   type Booking,
   type DepositSettings,
 } from "@/lib/firestore";
-import { CheckCircle2, XCircle, Trash2, Banknote, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Trash2, Banknote, RefreshCw, PlusCircle, X } from "lucide-react";
 import { sendBookingNotification } from "@/lib/email";
+import { SITE } from "@/lib/site";
+
+const EMPTY_NEW_BOOKING = {
+  ownerName: "",
+  ownerEmail: "",
+  ownerPhone: "",
+  dogName: "",
+  dogBreed: "",
+  service: "",
+  date: "",
+  time: "",
+  notes: "",
+};
 
 /** A confirmed appointment whose date & time have already passed. */
 function isArchived(b: Booking): boolean {
@@ -26,6 +40,11 @@ export default function AdminBookings() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [syncing, setSyncing] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newBooking, setNewBooking] = useState({ ...EMPTY_NEW_BOOKING });
+  const [confirmImmediately, setConfirmImmediately] = useState(true);
+  const [sendEmailToCustomer, setSendEmailToCustomer] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -60,6 +79,40 @@ export default function AdminBookings() {
     await load();
   }
 
+  function closeAddModal() {
+    setAddModalOpen(false);
+    setNewBooking({ ...EMPTY_NEW_BOOKING });
+    setConfirmImmediately(true);
+    setSendEmailToCustomer(true);
+  }
+
+  async function handleAddBooking(e: React.FormEvent) {
+    e.preventDefault();
+    setAdding(true);
+    try {
+      const ref = await createBooking({ ...newBooking, status: "pending" });
+      const canEmail = sendEmailToCustomer && newBooking.ownerEmail.trim() !== "";
+
+      if (confirmImmediately) {
+        const depositAmount = depositSettings[newBooking.service];
+        await updateBookingStatus(ref.id, "confirmed", newBooking.date, newBooking.time, depositAmount);
+        if (canEmail) {
+          sendBookingNotification("confirmed", { ...newBooking, id: ref.id, status: "confirmed", depositAmount });
+        }
+      } else if (canEmail) {
+        sendBookingNotification("new", { ...newBooking, id: ref.id, status: "pending" });
+      }
+
+      closeAddModal();
+      await load();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Manual booking failed:", msg, err);
+      alert(`Couldn't add booking: ${msg}`);
+    }
+    setAdding(false);
+  }
+
   async function handleSync() {
     setSyncing(true);
     try {
@@ -91,16 +144,142 @@ export default function AdminBookings() {
         <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#2C2A25]">
           Bookings
         </h1>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          title="Fixes older bookings that don't correctly block nearby slots on the booking page"
-          className="flex items-center gap-1.5 text-xs font-bold text-[#7A7265] border border-[#EEE9D8] px-3 py-1.5 rounded-full hover:border-[#8B9E7A] hover:text-[#8B9E7A] transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
-          {syncing ? "Syncing…" : "Repair Availability Data"}
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8B9E7A] px-3 py-1.5 rounded-full hover:bg-[#5E6E51] transition-colors"
+          >
+            <PlusCircle size={13} />
+            New Booking
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            title="Fixes older bookings that don't correctly block nearby slots on the booking page"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#7A7265] border border-[#EEE9D8] px-3 py-1.5 rounded-full hover:border-[#8B9E7A] hover:text-[#8B9E7A] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Syncing…" : "Repair Availability Data"}
+          </button>
+        </div>
       </div>
+
+      {/* Manual booking modal */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={closeAddModal} />
+          <form
+            onSubmit={handleAddBooking}
+            className="relative bg-white rounded-2xl border border-[#EEE9D8] shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between px-6 pt-6">
+              <h2 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#2C2A25]">
+                Add Booking Manually
+              </h2>
+              <button type="button" onClick={closeAddModal}
+                className="p-1.5 rounded-lg text-[#7A7265] hover:bg-[#EEE9D8] transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="px-6 text-xs text-[#7A7265] mt-1">
+              For phone or walk-in bookings, so there&apos;s a record on file.
+            </p>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Owner Name *</label>
+                  <input required value={newBooking.ownerName}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, ownerName: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Phone Number *</label>
+                  <input required type="tel" value={newBooking.ownerPhone}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, ownerPhone: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Email Address (optional)</label>
+                  <input type="email" value={newBooking.ownerEmail}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, ownerEmail: e.target.value }))}
+                    placeholder="Leave blank if not provided"
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Dog&apos;s Name *</label>
+                  <input required value={newBooking.dogName}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, dogName: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Breed *</label>
+                  <input required value={newBooking.dogBreed}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, dogBreed: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Service *</label>
+                  <select required value={newBooking.service}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, service: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]">
+                    <option value="">Select a service…</option>
+                    {SITE.services.map((s) => (
+                      <option key={s.name} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Date *</label>
+                  <input required type="date" value={newBooking.date}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, date: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Time *</label>
+                  <input required type="time" value={newBooking.time}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, time: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Notes (optional)</label>
+                  <textarea rows={2} value={newBooking.notes}
+                    onChange={(e) => setNewBooking((f) => ({ ...f, notes: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <label className="flex items-center gap-2 text-sm text-[#2C2A25] cursor-pointer">
+                  <input type="checkbox" checked={confirmImmediately}
+                    onChange={(e) => setConfirmImmediately(e.target.checked)}
+                    className="rounded accent-[#8B9E7A]" />
+                  Confirm immediately (skip pending)
+                </label>
+                <label className={`flex items-center gap-2 text-sm cursor-pointer ${newBooking.ownerEmail.trim() === "" ? "text-[#B0A898]" : "text-[#2C2A25]"}`}>
+                  <input type="checkbox" checked={sendEmailToCustomer}
+                    disabled={newBooking.ownerEmail.trim() === ""}
+                    onChange={(e) => setSendEmailToCustomer(e.target.checked)}
+                    className="rounded accent-[#8B9E7A]" />
+                  Send confirmation email to customer
+                  {newBooking.ownerEmail.trim() === "" && " (needs an email address)"}
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={closeAddModal}
+                  className="px-5 py-2 rounded-full text-sm font-bold border border-[#EEE9D8] text-[#7A7265] hover:border-[#8B9E7A] transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={adding}
+                  className="px-6 py-2 rounded-full text-sm font-bold bg-[#8B9E7A] text-white hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60">
+                  {adding ? "Saving…" : "Add Booking"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
