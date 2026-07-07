@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Phone } from "lucide-react";
+import { Mail } from "lucide-react";
 import { CookiePrefsButton } from "@/components/CookieConsent";
 
 export default function Footer() {
@@ -55,39 +55,14 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-[#7A7265]">
               <li>
                 <a
-                  href="mailto:hello@taylorstails.com"
+                  href="mailto:enquiries@taylors-tails.com"
                   className="flex items-center gap-2 hover:text-[#B5C9A4] transition-colors"
                 >
                   <Mail size={14} />
-                  hello@taylorstails.com
-                </a>
-              </li>
-              <li>
-                <a
-                  href="tel:+441234567890"
-                  className="flex items-center gap-2 hover:text-[#B5C9A4] transition-colors"
-                >
-                  <Phone size={14} />
-                  01234 567 890
+                  enquiries@taylors-tails.com
                 </a>
               </li>
             </ul>
-            <div className="flex gap-4 mt-4">
-              <a
-                href="#"
-                className="text-xs font-bold text-[#7A7265] hover:text-[#B5C9A4] transition-colors uppercase tracking-wide"
-                aria-label="Instagram"
-              >
-                Instagram
-              </a>
-              <a
-                href="#"
-                className="text-xs font-bold text-[#7A7265] hover:text-[#B5C9A4] transition-colors uppercase tracking-wide"
-                aria-label="Facebook"
-              >
-                Facebook
-              </a>
-            </div>
           </div>
         </div>
 
