@@ -94,14 +94,16 @@ export async function getBookings(): Promise<Booking[]> {
 
 /** Every currently-occupied time on a date (not cancelled) — safe for public use. */
 export async function getBookedSlots(date: string): Promise<string[]> {
+  // Filter by date only (no composite index needed) and exclude cancelled
+  // client-side — combining this with a "!=" filter requires a Firestore
+  // composite index that doesn't exist, which silently broke this query.
   const snap = await getDocs(
-    query(
-      collection(requireDb(), "bookingSlots"),
-      where("date", "==", date),
-      where("status", "!=", "cancelled")
-    )
+    query(collection(requireDb(), "bookingSlots"), where("date", "==", date))
   );
-  return snap.docs.map((d) => (d.data() as { time: string }).time);
+  return snap.docs
+    .map((d) => d.data() as { time: string; status: string })
+    .filter((d) => d.status !== "cancelled")
+    .map((d) => d.time);
 }
 
 export async function updateBookingStatus(
