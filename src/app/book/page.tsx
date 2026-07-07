@@ -16,11 +16,11 @@ import { db } from "@/lib/firebase";
 import { sendBookingNotification } from "@/lib/email";
 
 const SERVICES = [
-  "Small Dog Full Groom from £45",
-  "Medium Dog Full Groom from £55",
-  "Large Dog Full Groom from £65",
-  "X-Large Dog Full Groom from £75",
-  "Nail Trim Only (Walk-ins Welcome) from £10",
+  "Small Dog Full Groom (from £45)",
+  "Medium Dog Full Groom (from £55)",
+  "Large Dog Full Groom (from £65)",
+  "X-Large Dog Full Groom (from £75)",
+  "Nail Trim Only (Walk-ins Welcome, from £10)",
 ];
 
 const SAME_DAY_PHONE = "07966214750";
