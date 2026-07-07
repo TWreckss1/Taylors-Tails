@@ -16,12 +16,14 @@ import { db } from "@/lib/firebase";
 import { sendBookingNotification } from "@/lib/email";
 
 const SERVICES = [
-  "Small Dog Full Groom £45",
-  "Medium Dog Full Groom £55",
-  "Large Dog Full Groom £65",
-  "X-Large Dog Full Groom £75",
-  "Nail Trim Only (Walk-ins Welcome) £10",
+  "Small Dog Full Groom from £45",
+  "Medium Dog Full Groom from £55",
+  "Large Dog Full Groom from £65",
+  "X-Large Dog Full Groom from £75",
+  "Nail Trim Only (Walk-ins Welcome) from £10",
 ];
+
+const SAME_DAY_PHONE = "07966214750";
 
 function toDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -49,6 +51,7 @@ export default function BookPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showSameDayPopup, setShowSameDayPopup] = useState(false);
   const [form, setForm] = useState({
     ownerName: "", ownerEmail: "", ownerPhone: "",
     dogName: "", dogBreed: "", service: "", notes: "",
@@ -96,11 +99,20 @@ export default function BookPage() {
     return bookedTimes.some((t) => Math.abs(toMinutes(t) - slotMins) < bufferMins);
   }
 
+  function isToday(dateStr: string): boolean {
+    return dateStr === toDateStr(new Date());
+  }
+
   function handleDateSelect(date: string) {
     setSelectedDate(date);
     setSelectedTime("");
     setBookedTimes([]); // clear immediately — show all slots open
     if (!date) return;
+
+    if (isToday(date)) {
+      setShowSameDayPopup(true);
+      return; // no online same-day booking — skip fetching slots
+    }
 
     // Fetch booked slots in the background — slots are visible straight away
     setSlotsChecking(true);
@@ -217,7 +229,17 @@ export default function BookPage() {
               />
             </div>
 
-            {selectedDate && isDateAvailable(selectedDate) && (
+            {selectedDate && isDateAvailable(selectedDate) && isToday(selectedDate) && (
+              <p className="text-sm text-[#2C2A25] bg-[#DFC78A]/20 border border-[#DFC78A] rounded-xl px-4 py-3 mb-6">
+                For last-minute, same-day bookings please call us directly on{" "}
+                <a href={`tel:${SAME_DAY_PHONE}`} className="font-bold text-[#8B6F2E] hover:underline">
+                  {SAME_DAY_PHONE}
+                </a>
+                . Online booking is available from tomorrow onwards.
+              </p>
+            )}
+
+            {selectedDate && isDateAvailable(selectedDate) && !isToday(selectedDate) && (
               <>
                 <div className="flex items-center justify-between mb-3 mt-3">
                   <label className="block text-sm font-bold text-[#2C2A25]">
@@ -255,12 +277,48 @@ export default function BookPage() {
             )}
 
             <button
-              disabled={!selectedDate || !selectedTime || !isDateAvailable(selectedDate)}
+              disabled={!selectedDate || !selectedTime || !isDateAvailable(selectedDate) || isToday(selectedDate)}
               onClick={() => setStep(2)}
               className="w-full bg-[#8B9E7A] text-white py-3 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Continue
             </button>
+          </div>
+        )}
+
+        {/* Same-day booking popup */}
+        {showSameDayPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowSameDayPopup(false)}
+            />
+            <div className="relative bg-white rounded-2xl border border-[#EEE9D8] shadow-xl w-full max-w-sm p-6 text-center">
+              <h3 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#2C2A25] mb-3">
+                Last-Minute Booking?
+              </h3>
+              <p className="text-sm text-[#7A7265] leading-relaxed mb-6">
+                For last-minute bookings please reach out via{" "}
+                <a href={`tel:${SAME_DAY_PHONE}`} className="font-bold text-[#8B9E7A] hover:underline">
+                  Tel: {SAME_DAY_PHONE}
+                </a>
+                . Online booking is available from tomorrow onwards.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href={`tel:${SAME_DAY_PHONE}`}
+                  className="flex-1 bg-[#8B9E7A] text-white py-2.5 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-[#5E6E51] transition-colors"
+                >
+                  Call Now
+                </a>
+                <button
+                  onClick={() => setShowSameDayPopup(false)}
+                  className="flex-1 border-2 border-[#EEE9D8] text-[#7A7265] py-2.5 rounded-full text-sm font-bold uppercase tracking-wide hover:border-[#8B9E7A] hover:text-[#8B9E7A] transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
