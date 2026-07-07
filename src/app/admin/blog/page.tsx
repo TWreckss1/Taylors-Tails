@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getBlogPosts,
   createBlogPost,
@@ -7,7 +7,8 @@ import {
   deleteBlogPost,
   type BlogPost,
 } from "@/lib/firestore";
-import { PlusCircle, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { uploadOptimizedImage } from "@/lib/storage";
+import { PlusCircle, Pencil, Trash2, Eye, EyeOff, X, ImagePlus } from "lucide-react";
 
 function slugify(text: string) {
   return text
@@ -28,9 +29,12 @@ const EMPTY: Omit<BlogPost, "id" | "createdAt" | "updatedAt"> = {
 export default function AdminBlog() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<BlogPost | null>(null);
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
@@ -43,6 +47,7 @@ export default function AdminBlog() {
   function startNew() {
     setEditing(null);
     setForm({ ...EMPTY });
+    setModalOpen(true);
   }
 
   function startEdit(post: BlogPost) {
@@ -55,6 +60,13 @@ export default function AdminBlog() {
       coverUrl: post.coverUrl ?? "",
       published: post.published,
     });
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditing(null);
+    setForm({ ...EMPTY });
   }
 
   function handleTitleChange(title: string) {
@@ -63,6 +75,21 @@ export default function AdminBlog() {
       title,
       slug: editing ? f.slug : slugify(title),
     }));
+  }
+
+  async function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const url = await uploadOptimizedImage(file, "blog");
+      setForm((f) => ({ ...f, coverUrl: url }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Cover image upload failed: ${msg}`);
+    }
+    setUploadingCover(false);
+    if (coverInputRef.current) coverInputRef.current.value = "";
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -74,12 +101,12 @@ export default function AdminBlog() {
       } else {
         await createBlogPost(form);
       }
-      setForm({ ...EMPTY });
-      setEditing(null);
+      closeModal();
       await load();
-    } catch (err) {
-      console.error(err);
-      alert("Save failed.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Blog save failed:", msg, err);
+      alert(`Save failed: ${msg}`);
     }
     setSaving(false);
   }
@@ -94,8 +121,6 @@ export default function AdminBlog() {
     await updateBlogPost(post.id!, { published: !post.published });
     await load();
   }
-
-  const isEditorOpen = editing !== null || form.title !== "";
 
   return (
     <div>
@@ -112,65 +137,108 @@ export default function AdminBlog() {
         </button>
       </div>
 
-      {/* Editor */}
-      {isEditorOpen && (
-        <form
-          onSubmit={handleSave}
-          className="bg-white rounded-2xl border border-[#EEE9D8] p-6 shadow-sm mb-8"
-        >
-          <h2 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#2C2A25] mb-4">
-            {editing ? "Edit Post" : "New Post"}
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Title *</label>
-              <input required value={form.title} onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Slug *</label>
-              <input required value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] font-mono" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Cover Image URL</label>
-              <input value={form.coverUrl} onChange={(e) => setForm((f) => ({ ...f, coverUrl: e.target.value }))}
-                placeholder="https://…"
-                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Excerpt *</label>
-              <textarea required rows={2} value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
-                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-none" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Body *</label>
-              <textarea required rows={10} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-                placeholder="Write your post here. Separate paragraphs with blank lines."
-                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-y font-mono" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-sm text-[#2C2A25] cursor-pointer">
-              <input type="checkbox" checked={form.published}
-                onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
-                className="rounded accent-[#8B9E7A]" />
-              Publish immediately
-            </label>
-            <div className="ml-auto flex gap-3">
-              <button type="button" onClick={() => { setForm({ ...EMPTY }); setEditing(null); }}
-                className="px-5 py-2 rounded-full text-sm font-bold border border-[#EEE9D8] text-[#7A7265] hover:border-[#8B9E7A] transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={saving}
-                className="px-6 py-2 rounded-full text-sm font-bold bg-[#8B9E7A] text-white hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60">
-                {saving ? "Saving…" : editing ? "Update Post" : "Publish Post"}
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={closeModal}
+          />
+          <form
+            onSubmit={handleSave}
+            className="relative bg-white rounded-2xl border border-[#EEE9D8] shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between px-6 pt-6">
+              <h2 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#2C2A25]">
+                {editing ? "Edit Post" : "New Post"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="p-1.5 rounded-lg text-[#7A7265] hover:bg-[#EEE9D8] transition-colors"
+              >
+                <X size={18} />
               </button>
             </div>
-          </div>
-        </form>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Title *</label>
+                  <input required value={form.title} onChange={(e) => handleTitleChange(e.target.value)}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Slug *</label>
+                  <input required value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] font-mono" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Cover Image (optional)</label>
+                  <div className="flex items-center gap-4">
+                    {form.coverUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={form.coverUrl} alt="Cover preview" className="w-20 h-20 rounded-xl object-cover border border-[#EEE9D8]" />
+                    )}
+                    <div className="flex-1">
+                      <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverSelect}
+                        disabled={uploadingCover}
+                        className="w-full text-sm text-[#7A7265] file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#EEE9D8] file:text-[#2C2A25] hover:file:bg-[#DFC78A]"
+                      />
+                      <p className="text-xs text-[#7A7265] mt-1 flex items-center gap-1.5">
+                        {uploadingCover ? (
+                          <>
+                            <span className="inline-block w-3 h-3 rounded-full border-2 border-[#8B9E7A] border-t-transparent animate-spin" />
+                            Optimizing &amp; uploading…
+                          </>
+                        ) : (
+                          <>
+                            <ImagePlus size={12} />
+                            Automatically resized and compressed.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Excerpt *</label>
+                  <textarea required rows={2} value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-none" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">Body *</label>
+                  <textarea required rows={10} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                    placeholder="Write your post here. Separate paragraphs with blank lines."
+                    className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] resize-y font-mono" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                <label className="flex items-center gap-2 text-sm text-[#2C2A25] cursor-pointer">
+                  <input type="checkbox" checked={form.published}
+                    onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
+                    className="rounded accent-[#8B9E7A]" />
+                  Publish immediately
+                </label>
+                <div className="ml-auto flex gap-3">
+                  <button type="button" onClick={closeModal}
+                    className="px-5 py-2 rounded-full text-sm font-bold border border-[#EEE9D8] text-[#7A7265] hover:border-[#8B9E7A] transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={saving || uploadingCover}
+                    className="px-6 py-2 rounded-full text-sm font-bold bg-[#8B9E7A] text-white hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60">
+                    {saving ? "Saving…" : editing ? "Update Post" : "Publish Post"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Post list */}

@@ -24,14 +24,14 @@ export const SITE: SiteConfig = {
   description:
     "Professional dog grooming salon offering full grooms, bath & dry, puppy packages and tidy-ups in a warm, caring environment. Book online today.",
 
-  // TODO: fill in real business details
+  // TODO: fill in phone once available
   phone: "",                    // e.g. "+44 7700 900000"
-  email: "",                    // public contact email
+  email: "enquiries@taylors-tails.com",
   address: {
-    street: "",                 // e.g. "12 High Street"
-    town: "",                   // e.g. "Maidstone"
-    region: "",                 // e.g. "Kent"
-    postcode: "",               // e.g. "ME14 1AA"
+    street: "Portacabin, Oak Farm, Station Road",
+    town: "Ditton Priors",
+    region: "Shropshire",
+    postcode: "WV16 6SS",
     country: "GB",
   },
   // Approximate map coordinates — grab from Google Maps (right-click → copy coords)

@@ -1,4 +1,5 @@
 import type { Booking } from "./firestore";
+import { SITE } from "./site";
 
 export interface BookingEmailDetails {
   id?: string;
@@ -60,6 +61,24 @@ function detailsTable(b: BookingEmailDetails): string {
   </table>`;
 }
 
+function addressBlock(): string {
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${SITE.address.street}, ${SITE.address.town}, ${SITE.address.postcode}`
+  )}`;
+  return `<div style="background:#F8F7F0;border-radius:10px;padding:16px;margin:16px 0;">
+    <p style="margin:0 0 4px;color:#2C2A25;font-size:14px;font-weight:bold;">Where to find us</p>
+    <p style="margin:0;color:#7A7265;font-size:14px;line-height:1.5;">
+      ${SITE.legalName}<br />
+      ${SITE.address.street}<br />
+      ${SITE.address.town}, ${SITE.address.postcode}<br />
+      United Kingdom
+    </p>
+    <p style="margin:8px 0 0;">
+      <a href="${mapsUrl}" style="color:#8B9E7A;font-weight:bold;font-size:13px;">Get directions</a>
+    </p>
+  </div>`;
+}
+
 function ctaButton(href: string, label: string): string {
   return `<p style="text-align:center;margin:24px 0;">
     <a href="${href}" style="display:inline-block;background:#8B9E7A;color:#ffffff;font-weight:bold;font-size:14px;text-decoration:none;padding:14px 28px;border-radius:999px;">
@@ -100,6 +119,7 @@ export async function sendNewBookingEmails(booking: BookingEmailDetails, siteOri
       ${booking.dogName} is booked in — we'll be in touch within 24 hours to confirm your appointment.
     </p>
     ${detailsTable(booking)}
+    ${addressBlock()}
     <p style="color:#7A7265;font-size:13px;line-height:1.6;">
       Need to change anything? Just reply to this email.
     </p>`
@@ -141,6 +161,7 @@ export async function sendBookingConfirmedEmail(booking: BookingEmailDetails, si
       ${booking.dogName}'s appointment is confirmed. We look forward to seeing you both!
     </p>
     ${detailsTable(booking)}
+    ${addressBlock()}
     ${
       hasDeposit
         ? `<p style="color:#7A7265;font-size:14px;line-height:1.6;">

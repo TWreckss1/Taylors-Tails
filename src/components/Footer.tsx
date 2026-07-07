@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { CookiePrefsButton } from "@/components/CookieConsent";
+import { SITE } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -60,6 +61,27 @@ export default function Footer() {
                 >
                   <Mail size={14} />
                   enquiries@taylors-tails.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    `${SITE.address.street}, ${SITE.address.town}, ${SITE.address.postcode}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-2 hover:text-[#B5C9A4] transition-colors"
+                >
+                  <MapPin size={14} className="mt-0.5 shrink-0" />
+                  <span>
+                    {SITE.legalName}
+                    <br />
+                    {SITE.address.street}
+                    <br />
+                    {SITE.address.town}, {SITE.address.postcode}
+                    <br />
+                    United Kingdom
+                  </span>
                 </a>
               </li>
             </ul>
