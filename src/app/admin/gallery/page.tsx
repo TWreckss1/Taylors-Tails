@@ -7,7 +7,7 @@ import {
   type GalleryItem,
 } from "@/lib/firestore";
 import { Trash2, Upload } from "lucide-react";
-import { uploadFile } from "@/lib/storage";
+import { uploadOptimizedImage } from "@/lib/storage";
 
 export default function AdminGallery() {
   const [items, setItems] = useState<GalleryItem[]>([]);
@@ -35,17 +35,18 @@ export default function AdminGallery() {
     setUploading(true);
     try {
       const [beforeUrl, afterUrl] = await Promise.all([
-        uploadFile(beforeFile, "gallery"),
-        uploadFile(afterFile, "gallery"),
+        uploadOptimizedImage(beforeFile, "gallery"),
+        uploadOptimizedImage(afterFile, "gallery"),
       ]);
       await createGalleryItem({ beforeUrl, afterUrl, ...form });
       setForm({ dogName: "", breed: "", caption: "" });
       if (beforeRef.current) beforeRef.current.value = "";
       if (afterRef.current) afterRef.current.value = "";
       await load();
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed. Check Firebase Storage is enabled in your Firebase project.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Gallery upload failed:", msg, err);
+      alert(`Upload failed: ${msg}`);
     }
     setUploading(false);
   }
@@ -103,11 +104,16 @@ export default function AdminGallery() {
           </div>
         </div>
 
-        <button type="submit" disabled={uploading}
-          className="flex items-center gap-2 bg-[#8B9E7A] text-white px-6 py-2.5 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60">
-          <Upload size={15} />
-          {uploading ? "Uploading…" : "Upload Photos"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={uploading}
+            className="flex items-center gap-2 bg-[#8B9E7A] text-white px-6 py-2.5 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60">
+            <Upload size={15} />
+            {uploading ? "Optimizing & Uploading…" : "Upload Photos"}
+          </button>
+          <p className="text-xs text-[#7A7265]">
+            Photos are automatically resized and compressed — upload any size straight from your phone.
+          </p>
+        </div>
       </form>
 
       {/* Grid */}
