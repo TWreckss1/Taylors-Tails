@@ -7,7 +7,11 @@ export const metadata: Metadata = {
     "See the transformations — before and after photos of dogs groomed at Taylor's Tails. Real results from our grooming salon.",
 };
 
-export const revalidate = 60;
+// Fetch fresh on every request rather than relying on ISR — this site runs
+// on Cloudflare Workers, which needs a KV cache binding for `revalidate` to
+// actually work, so admin-added photos would otherwise never appear until
+// the next deploy.
+export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
   let items: Awaited<ReturnType<typeof getGalleryItems>> = [];

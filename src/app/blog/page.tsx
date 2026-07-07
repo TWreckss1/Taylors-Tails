@@ -10,7 +10,9 @@ export const metadata: Metadata = {
     "Dog grooming tips, coat care advice and news from Taylor's Tails grooming salon.",
 };
 
-export const revalidate = 60;
+// Fetch fresh on every request — see gallery/page.tsx for why (ISR's
+// `revalidate` doesn't work without a KV cache binding on Cloudflare Workers).
+export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
   let posts: Awaited<ReturnType<typeof getBlogPosts>> = [];

@@ -1,20 +1,16 @@
-import { getBlogPostBySlug, getBlogPosts } from "@/lib/firestore";
+import { getBlogPostBySlug } from "@/lib/firestore";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-export const revalidate = 60;
-
-export async function generateStaticParams() {
-  try {
-    const posts = await getBlogPosts(true);
-    return posts.map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
-}
+// Fetch fresh on every request — this route previously used
+// generateStaticParams + revalidate (ISR), which requires a KV cache
+// binding to actually refresh on Cloudflare Workers. Without it, a post
+// published after the last deploy would 404 entirely rather than just
+// showing stale content.
+export const dynamic = "force-dynamic";
 
 export default async function BlogPostPage({
   params,

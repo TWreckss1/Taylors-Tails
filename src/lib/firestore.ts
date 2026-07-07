@@ -189,11 +189,14 @@ export async function createBlogPost(
 }
 
 export async function getBlogPosts(publishedOnly = true): Promise<BlogPost[]> {
-  const constraints = publishedOnly
-    ? [where("published", "==", true), orderBy("createdAt", "desc")]
-    : [orderBy("createdAt", "desc")];
+  // Filter by published only (no orderBy) to avoid needing a Firestore
+  // composite index; sort client-side instead — same fix as reviews/bookings.
+  const constraints = publishedOnly ? [where("published", "==", true)] : [];
   const snap = await getDocs(query(collection(requireDb(), "blog"), ...constraints));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost));
+  const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost));
+  return posts.sort(
+    (a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)
+  );
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
