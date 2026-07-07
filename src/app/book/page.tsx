@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
 import {
   createBooking,
   getBookedSlots,
@@ -14,8 +16,17 @@ import { sendBookingNotification } from "@/lib/email";
 
 const SERVICES = ["Full Groom", "Bath & Dry", "Puppy Package", "Tidy Up"];
 
-function todayString() {
-  return new Date().toISOString().split("T")[0];
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export default function BookPage() {
@@ -49,6 +60,15 @@ export default function BookPage() {
     if (availability.blockedDates.includes(dateStr)) return false;
     const day = new Date(dateStr + "T12:00:00").getDay();
     return availability.workingDays.includes(day);
+  }
+
+  // Greys out non-working days and blocked dates directly in the calendar —
+  // re-evaluated on every render, so it updates live whenever `availability`
+  // changes (e.g. the owner toggles off Saturday in the admin panel).
+  function isDateDisabled(date: Date): boolean {
+    if (date < startOfToday()) return true;
+    if (!availability.workingDays.includes(date.getDay())) return true;
+    return availability.blockedDates.includes(toDateStr(date));
   }
 
   function toMinutes(t: string): number {
@@ -178,19 +198,16 @@ export default function BookPage() {
             <label className="block text-sm font-bold text-[#2C2A25] mb-2">
               Select a Date
             </label>
-            <input
-              type="date"
-              min={todayString()}
-              value={selectedDate}
-              onChange={(e) => handleDateSelect(e.target.value)}
-              className="w-full border border-[#EEE9D8] rounded-xl px-4 py-3 text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A] mb-3"
-            />
-
-            {selectedDate && !isDateAvailable(selectedDate) && (
-              <p className="text-[#C0392B] text-sm mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                Sorry, we&apos;re not available on this date. Please choose another day.
-              </p>
-            )}
+            <div className="flex justify-center border border-[#EEE9D8] rounded-xl bg-[#F8F7F0] p-2 mb-4">
+              <DayPicker
+                className="tt-datepicker"
+                mode="single"
+                selected={selectedDate ? new Date(selectedDate + "T12:00:00") : undefined}
+                onSelect={(date) => handleDateSelect(date ? toDateStr(date) : "")}
+                disabled={isDateDisabled}
+                startMonth={startOfToday()}
+              />
+            </div>
 
             {selectedDate && isDateAvailable(selectedDate) && (
               <>

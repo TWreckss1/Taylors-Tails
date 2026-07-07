@@ -25,3 +25,14 @@ body {
 h1, h2, h3, h4, h5 {
   font-family: var(--font-playfair), Georgia, serif;
 }
+
+/* Theme the booking calendar (react-day-picker) to match the site palette.
+   Must target .rdp-root directly — the library's own stylesheet sets these
+   variables on that same class, and same-element rules beat inherited ones
+   from an ancestor even with an inline style. */
+.tt-datepicker.rdp-root {
+  --rdp-accent-color: #8b9e7a;
+  --rdp-accent-background-color: #b5c9a4;
+  --rdp-today-color: #8b6f2e;
+  font-family: var(--font-lato), system-ui, sans-serif;
+}
