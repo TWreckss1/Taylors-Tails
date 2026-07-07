@@ -47,10 +47,11 @@ export const SITE: SiteConfig = {
   },
 
   services: [
-    { name: "Full Groom", description: "Complete grooming service: bath, dry, full haircut, nails, ears and finishing touches." },
-    { name: "Bath & Dry", description: "Refreshing bath with premium shampoo, blow dry and brush-out." },
-    { name: "Puppy Package", description: "Gentle introduction to grooming for puppies — building happy, calm salon visits." },
-    { name: "Tidy Up", description: "Trim around the face, feet and sanitary areas between full grooms." },
+    { name: "Small Dog Full Groom £45", description: "Full groom for small breeds: bath, blow dry, nail clip, paw pad trim, sanitary trim, ear clean, full body/face styling and perfume/cologne." },
+    { name: "Medium Dog Full Groom £55", description: "Full groom for medium breeds: bath, blow dry, nail clip, paw pad trim, sanitary trim, ear clean, full body/face styling and perfume/cologne." },
+    { name: "Large Dog Full Groom £65", description: "Full groom for large breeds: bath, blow dry, nail clip, paw pad trim, sanitary trim, ear clean, full body/face styling and perfume/cologne." },
+    { name: "X-Large Dog Full Groom £75", description: "Full groom for X-large breeds: bath, blow dry, nail clip, paw pad trim, sanitary trim, ear clean, full body/face styling and perfume/cologne." },
+    { name: "Nail Trim Only (Walk-ins Welcome) £10", description: "Quick nail trim — no appointment necessary, walk-ins welcome." },
   ],
 };
 

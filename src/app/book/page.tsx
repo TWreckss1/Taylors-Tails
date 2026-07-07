@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -14,7 +15,13 @@ import {
 import { db } from "@/lib/firebase";
 import { sendBookingNotification } from "@/lib/email";
 
-const SERVICES = ["Full Groom", "Bath & Dry", "Puppy Package", "Tidy Up"];
+const SERVICES = [
+  "Small Dog Full Groom £45",
+  "Medium Dog Full Groom £55",
+  "Large Dog Full Groom £65",
+  "X-Large Dog Full Groom £75",
+  "Nail Trim Only (Walk-ins Welcome) £10",
+];
 
 function toDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -41,6 +48,7 @@ export default function BookPage() {
   const [selectedTime, setSelectedTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [form, setForm] = useState({
     ownerName: "", ownerEmail: "", ownerPhone: "",
     dogName: "", dogBreed: "", service: "", notes: "",
@@ -314,6 +322,13 @@ export default function BookPage() {
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-[#7A7265] mt-1.5">
+                  Please see our{" "}
+                  <Link href="/offerings" className="text-[#8B9E7A] font-bold hover:text-[#5E6E51] underline underline-offset-2">
+                    Offerings
+                  </Link>{" "}
+                  page for a full breakdown of what&apos;s included.
+                </p>
               </div>
             </div>
 
@@ -332,6 +347,26 @@ export default function BookPage() {
               />
             </div>
 
+            <label className="flex items-start gap-2.5 mb-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 rounded accent-[#8B9E7A]"
+              />
+              <span className="text-sm text-[#2C2A25]">
+                By completing this form I agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-[#8B9E7A] font-bold hover:text-[#5E6E51] underline underline-offset-2"
+                >
+                  Terms and Conditions
+                </Link>{" "}
+                laid out by Taylor&apos;s Tails.
+              </span>
+            </label>
+
             {submitError && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-2">
                 {submitError}
@@ -348,7 +383,7 @@ export default function BookPage() {
               </button>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !agreedToTerms}
                 className="flex-1 bg-[#8B9E7A] text-white py-3 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-[#5E6E51] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <CalendarCheck size={16} />

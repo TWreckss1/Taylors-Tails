@@ -73,6 +73,10 @@ export default function Footer() {
             Cookie Policy
           </Link>
           <span className="hidden sm:inline">·</span>
+          <Link href="/terms" className="hover:text-[#B5C9A4] transition-colors">
+            Terms &amp; Conditions
+          </Link>
+          <span className="hidden sm:inline">·</span>
           <CookiePrefsButton />
         </div>
       </div>
