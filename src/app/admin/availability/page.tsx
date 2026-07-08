@@ -12,6 +12,25 @@ import { cn } from "@/lib/cn";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** All date strings from start to end, inclusive. */
+function expandDateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const cur = new Date(start + "T12:00:00");
+  const last = new Date(end + "T12:00:00");
+  while (cur <= last) {
+    dates.push(toDateStr(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
 const DURATIONS = [
   { label: "30 min", value: 30 },
   { label: "45 min", value: 45 },
@@ -26,7 +45,8 @@ export default function AvailabilityPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [newDate, setNewDate] = useState("");
+  const [rangeStart, setRangeStart] = useState("");
+  const [rangeEnd, setRangeEnd] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -46,13 +66,17 @@ export default function AvailabilityPage() {
     }));
   }
 
-  function addBlockedDate() {
-    if (!newDate || form.blockedDates.includes(newDate)) return;
+  function addBlockedRange() {
+    if (!rangeStart) return;
+    const end = rangeEnd || rangeStart;
+    if (end < rangeStart) return;
+    const newDates = expandDateRange(rangeStart, end);
     setForm((f) => ({
       ...f,
-      blockedDates: [...f.blockedDates, newDate].sort(),
+      blockedDates: Array.from(new Set([...f.blockedDates, ...newDates])).sort(),
     }));
-    setNewDate("");
+    setRangeStart("");
+    setRangeEnd("");
   }
 
   function removeBlockedDate(date: string) {
@@ -229,19 +253,36 @@ export default function AvailabilityPage() {
             <span className="text-sm font-normal text-[#7A7265] ml-2">(holidays, days off)</span>
           </h2>
 
-          <div className="flex gap-2 mb-4">
-            <input
-              type="date"
-              value={newDate}
-              min={new Date().toISOString().split("T")[0]}
-              onChange={(e) => setNewDate(e.target.value)}
-              className="flex-1 border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]"
-            />
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={rangeStart}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setRangeStart(e.target.value)}
+                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-[#2C2A25] mb-1.5 uppercase tracking-wide">
+                End Date <span className="font-normal normal-case text-[#7A7265]">(optional — same day if blank)</span>
+              </label>
+              <input
+                type="date"
+                value={rangeEnd}
+                min={rangeStart || new Date().toISOString().split("T")[0]}
+                onChange={(e) => setRangeEnd(e.target.value)}
+                className="w-full border border-[#EEE9D8] rounded-xl px-4 py-2.5 text-sm text-[#2C2A25] bg-[#F8F7F0] focus:outline-none focus:ring-2 focus:ring-[#8B9E7A]"
+              />
+            </div>
             <button
               type="button"
-              onClick={addBlockedDate}
-              disabled={!newDate}
-              className="flex items-center gap-2 bg-[#8B9E7A] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#5E6E51] transition-colors disabled:opacity-40"
+              onClick={addBlockedRange}
+              disabled={!rangeStart}
+              className="flex items-center justify-center gap-2 bg-[#8B9E7A] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#5E6E51] transition-colors disabled:opacity-40 sm:self-end"
             >
               <PlusCircle size={15} />
               Block
