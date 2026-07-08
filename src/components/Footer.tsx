@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, MapPin } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { CookiePrefsButton } from "@/components/CookieConsent";
 import { SITE } from "@/lib/site";
 
@@ -54,6 +54,17 @@ export default function Footer() {
               Get in Touch
             </h4>
             <ul className="space-y-3 text-sm text-[#7A7265]">
+              {SITE.phone && (
+                <li>
+                  <a
+                    href={`tel:${SITE.phone.replace(/\s+/g, "")}`}
+                    className="flex items-center gap-2 hover:text-[#B5C9A4] transition-colors"
+                  >
+                    <Phone size={14} />
+                    {SITE.phone}
+                  </a>
+                </li>
+              )}
               <li>
                 <a
                   href="mailto:enquiries@taylors-tails.com"
@@ -90,6 +101,10 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-[#3C3A35] text-xs text-[#5A5650] flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
           <span>© {new Date().getFullYear()} Taylor&apos;s Tails Dog Grooming. All rights reserved.</span>
+          <span className="hidden sm:inline">·</span>
+          <Link href="/privacy" className="hover:text-[#B5C9A4] transition-colors">
+            Privacy Policy
+          </Link>
           <span className="hidden sm:inline">·</span>
           <Link href="/cookie-policy" className="hover:text-[#B5C9A4] transition-colors">
             Cookie Policy

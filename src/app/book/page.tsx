@@ -14,6 +14,7 @@ import {
 } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
 import { sendBookingNotification } from "@/lib/email";
+import { SITE } from "@/lib/site";
 
 const SERVICES = [
   "Small Dog Full Groom (from £45)",
@@ -23,7 +24,7 @@ const SERVICES = [
   "Nail Trim Only (Walk-ins Welcome, from £10)",
 ];
 
-const SAME_DAY_PHONE = "07966214750";
+const SAME_DAY_PHONE = SITE.phone.replace(/\s+/g, "");
 
 function toDateStr(d: Date): string {
   const y = d.getFullYear();

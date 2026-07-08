@@ -5,6 +5,7 @@ export async function GET() {
   const urls: { loc: string; priority: number }[] = [
     { loc: SITE.url, priority: 1.0 },
     { loc: `${SITE.url}/book`, priority: 0.9 },
+    { loc: `${SITE.url}/offerings`, priority: 0.8 },
     { loc: `${SITE.url}/gallery`, priority: 0.7 },
     { loc: `${SITE.url}/blog`, priority: 0.6 },
   ];
