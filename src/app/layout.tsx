@@ -5,6 +5,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
 import AnalyticsListener from "@/components/AnalyticsListener";
+import GoogleTag from "@/components/GoogleTag";
 import { SITE, localBusinessJsonLd } from "@/lib/site";
 
 const playfair = Playfair_Display({
@@ -78,6 +79,7 @@ export default function RootLayout({
         <Footer />
         <CookieConsent />
         <AnalyticsListener />
+        <GoogleTag />
       </body>
     </html>
   );
