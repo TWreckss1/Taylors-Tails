@@ -15,11 +15,27 @@ const firebaseConfig = {
 
 // Only initialise if a real API key is present (prevents build-time crashes)
 const configured = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
-const app = configured
-  ? getApps().length === 0
-    ? initializeApp(firebaseConfig)
-    : getApps()[0]
-  : null;
+
+// getApps().length check-then-initializeApp isn't atomic — on Cloudflare
+// Workers, concurrent requests to a fresh isolate can both see zero apps and
+// both call initializeApp(), and the loser throws "Firebase App named
+// '[DEFAULT]' already exists", crashing the whole request with no way for
+// page-level try/catch to intercept it (it happens at module-import time).
+// Falling back to the already-registered app on that specific error makes
+// this race harmless instead of a 500.
+function getOrInitApp() {
+  const existing = getApps();
+  if (existing.length > 0) return existing[0];
+  try {
+    return initializeApp(firebaseConfig);
+  } catch (err) {
+    const alreadyExists = getApps();
+    if (alreadyExists.length > 0) return alreadyExists[0];
+    throw err;
+  }
+}
+
+const app = configured ? getOrInitApp() : null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const auth = app ? getAuth(app) : (null as any);
