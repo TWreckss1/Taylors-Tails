@@ -16,11 +16,19 @@ interface SiteConfig {
   services: { name: string; description: string }[];
 }
 
+// Cloudflare env vars are plain strings — guard against someone entering a
+// bare domain (e.g. "taylors-tails.com") without a scheme, which crashes
+// `new URL()` in layout.tsx at build time.
+function normalizeSiteUrl(raw: string): string {
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/+$/, "");
+}
+
 export const SITE: SiteConfig = {
   name: "Taylor's Tails",
   legalName: "Taylor's Tails Dog Grooming Salon",
   // Override with NEXT_PUBLIC_SITE_URL in Cloudflare if this ever changes
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://taylors-tails.com",
+  url: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL ?? "https://taylors-tails.com"),
   description:
     "Professional dog grooming salon offering full grooms, bath & dry, puppy packages and tidy-ups in a warm, caring environment. Book online today.",
 
