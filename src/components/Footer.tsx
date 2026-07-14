@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="bg-[#2C2A25] text-[#EEE9D8]">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
             <h3 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#B5C9A4] mb-3">
@@ -46,6 +46,24 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Insurance badge */}
+          <div className="flex md:items-start">
+            <a
+              href="https://www.petbusinessinsurance.co.uk/public-liability.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-90 hover:opacity-100 transition-opacity"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://www.petbusinessinsurance.co.uk/img/ocoveredby.png"
+                alt="Covered by Pet Business Insurance — Public Liability"
+                className="h-14 w-auto"
+                loading="lazy"
+              />
+            </a>
           </div>
 
           {/* Contact */}
