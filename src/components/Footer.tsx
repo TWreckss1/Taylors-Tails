@@ -48,8 +48,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Insurance badge */}
-          <div className="flex md:items-start">
+          {/* Badges */}
+          <div className="flex flex-col gap-3 md:items-start">
             <a
               href="https://www.petbusinessinsurance.co.uk/public-liability.aspx"
               target="_blank"
@@ -63,6 +63,30 @@ export default function Footer() {
                 className="h-14 w-auto"
                 loading="lazy"
               />
+            </a>
+
+            <a
+              href="https://pixelbarn.georgeslade.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Built by PixelBarn"
+              className="h-14 flex items-center gap-2.5 bg-[#0B1220] rounded-md pl-2 pr-4 opacity-90 hover:opacity-100 transition-opacity"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/pixelbarn-logo.svg"
+                alt=""
+                className="h-9 w-9 shrink-0"
+                loading="lazy"
+              />
+              <span className="leading-tight">
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#DC9B00]">
+                  Built By
+                </span>
+                <span className="block text-sm font-bold text-white">
+                  PixelBarn
+                </span>
+              </span>
             </a>
           </div>
 
