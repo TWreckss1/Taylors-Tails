@@ -1,8 +1,15 @@
 name = "taylors-tails"
-main = ".open-next/worker.js"
+main = "custom-worker.ts"
 compatibility_date = "2025-03-01"
-compatibility_flags = ["nodejs_compat"]
+# populate_process_env lets the cron handler read secrets via process.env,
+# the same way the Next.js API routes do.
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+
+# Weekly bookings summary email — Mondays at 9am UK time. Cron runs in UTC,
+# so fire at 08:00 (BST) and 09:00 (GMT); the handler skips whichever isn't 9am.
+[triggers]
+crons = ["0 8 * * 1", "0 9 * * 1"]

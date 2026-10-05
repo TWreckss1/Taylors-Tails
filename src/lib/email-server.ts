@@ -22,7 +22,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function emailShell(heading: string, body: string): string {
+export function emailShell(heading: string, body: string): string {
   return `
   <div style="background:#F8F7F0;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #EEE9D8;">
@@ -87,7 +87,7 @@ function ctaButton(href: string, label: string): string {
   </p>`;
 }
 
-async function sendEmail(to: string, toName: string, subject: string, html: string) {
+export async function sendEmail(to: string, toName: string, subject: string, html: string) {
   const apiKey = process.env.BREVO_API_KEY;
   const sender = process.env.BREVO_SENDER_EMAIL;
   if (!apiKey || !sender) throw new Error("Email not configured");
