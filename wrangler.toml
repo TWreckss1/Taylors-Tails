@@ -12,4 +12,5 @@ binding = "ASSETS"
 # Weekly bookings summary email — Mondays at 9am UK time. Cron runs in UTC,
 # so fire at 08:00 (BST) and 09:00 (GMT); the handler skips whichever isn't 9am.
 [triggers]
-crons = ["0 8 * * 1", "0 9 * * 1"]
+# TEMPORARY: "30 15 5 10 *" is a one-off test send at 15:30 UTC on 5 Oct — remove after testing.
+crons = ["0 8 * * 1", "0 9 * * 1", "30 15 5 10 *"]
